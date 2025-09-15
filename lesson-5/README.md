@@ -1,21 +1,69 @@
-# Lesson 5 — Terraform AWS Infrastructure (S3+DynamoDB backend, VPC, ECR)
+# lesson-5 — Terraform on AWS (S3 backend, DynamoDB locks, VPC, ECR)
 
-Цей проєкт розгортає інфраструктуру AWS за допомогою Terraform у директорії `lesson-5`:
-- **S3** (з версіюванням) для зберігання Terraform state.
-- **DynamoDB** для блокування state-файлу.
-- **VPC** із 3 публічними та 3 приватними підмережами, **Internet Gateway**, **NAT Gateway**, таблиці маршрутів.
-- **ECR** репозиторій з ввімкненим **скануванням образів** та політикою доступу.
+## ✅ Вимоги
+- Terraform ≥ 1.5, AWS CLI
+- AWS креденшали (профіль `lesson5`)
+- Регіон за замовчуванням: `eu-central-1`
 
-> Регіон: `us-west-2`  
-> S3 bucket: `usaty-oleg-terraform-state`  
-> DynamoDB: `terraform-locks`  
-> ECR: `lesson-5-ecr`
-
----
-
-## Вимоги
-- AWS акаунт та налаштований доступ (AWS CLI або змінні оточення `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION=us-west-2`).
-- Terraform **v1.5+** (рекомендовано v1.6+).
-- Доступ до регіону **us-west-2**.
-
+## 📁 Файли
 ## Структура проєкту
+
+- `lesson-5/`
+    - `main.tf` — головний файл для підключення модулів
+    - `backend.tf` — налаштування бекенду для стейтів (S3 + DynamoDB)
+    - `outputs.tf` — загальне виведення ресурсів
+    - `modules/` — каталог з модулями
+        - `s3-backend/` — модуль для S3 та DynamoDB
+            - `s3.tf` — створення S3-бакета
+            - `dynamodb.tf` — створення DynamoDB
+            - `variables.tf` — змінні для S3/DynamoDB
+            - `outputs.tf` — виведення інформації про S3 та DynamoDB
+        - `vpc/` — модуль для VPC
+            - `vpc.tf` — створення VPC, підмереж, Internet Gateway
+            - `routes.tf` — налаштування маршрутизації
+            - `variables.tf` — змінні для VPC
+            - `outputs.tf` — виведення інформації про VPC
+        - `ecr/` — модуль для ECR
+            - `ecr.tf` — створення ECR-репозиторію
+            - `variables.tf` — змінні для ECR
+            - `outputs.tf` — виведення URL репозиторію ECR
+    - `README.md` — документація проєкту
+
+
+
+
+## ⚙️ Bootstrapping бекенду (перший запуск)
+1. У `main.tf` вистави:
+    - `bucket_name = <унікальний S3 бакет>`
+    - `table_name  = "terraform-locks"`
+2. Тимчасово вимкни бекенд → перейменуй `backend.tf` ➝ `backend.tf.disabled`
+3. Створи лише бекенд-ресурси **локально**:
+   ```bash
+   terraform init
+   terraform apply -target=module.s3_backend -auto-approve -lock=false
+Увімкни бекенд і мігруй стейт:
+
+bash
+Copy code
+mv backend.tf.disabled backend.tf
+terraform init -migrate-state
+🚀 Створення інфраструктури
+bash
+Copy code
+terraform plan
+terraform apply
+🧹 Безпечне видалення
+bash
+Copy code
+mv backend.tf backend.tf.disabled
+terraform init -reconfigure
+terraform destroy
+🐳 ECR (швидкий старт)
+bash
+Copy code
+aws ecr get-login-password --region eu-central-1 --profile lesson5 \
+| docker login --username AWS --password-stdin $(terraform output -raw ecr_repository_url | cut -d'/' -f1)
+
+export REPO=$(terraform output -raw ecr_repository_url)
+docker build -t $REPO:latest . && docker push $REPO:latest
+💡 NAT Gateway коштує погодинно + за трафік. У прикладі використовується 1 NAT для економії.
