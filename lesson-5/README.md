@@ -29,9 +29,6 @@
             - `outputs.tf` — виведення URL репозиторію ECR
     - `README.md` — документація проєкту
 
-
-
-
 ## ⚙️ Bootstrapping бекенду (перший запуск)
 1. У `main.tf` вистави:
     - `bucket_name = <унікальний S3 бакет>`
@@ -43,27 +40,22 @@
    terraform apply -target=module.s3_backend -auto-approve -lock=false
 Увімкни бекенд і мігруй стейт:
 
-bash
-Copy code
+
 mv backend.tf.disabled backend.tf
 terraform init -migrate-state
+
 🚀 Створення інфраструктури
-bash
-Copy code
 terraform plan
 terraform apply
+
 🧹 Безпечне видалення
-bash
-Copy code
 mv backend.tf backend.tf.disabled
 terraform init -reconfigure
 terraform destroy
+
 🐳 ECR (швидкий старт)
-bash
-Copy code
 aws ecr get-login-password --region eu-central-1 --profile lesson5 \
 | docker login --username AWS --password-stdin $(terraform output -raw ecr_repository_url | cut -d'/' -f1)
 
 export REPO=$(terraform output -raw ecr_repository_url)
 docker build -t $REPO:latest . && docker push $REPO:latest
-💡 NAT Gateway коштує погодинно + за трафік. У прикладі використовується 1 NAT для економії.
