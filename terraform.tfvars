@@ -1,0 +1,4 @@
+aws_region = "eu-central-1"
+project_name = "lesson-8-9"
+backend_bucket_name = "tfstate-598357935226-lesson-8-9"
+backend_lock_table  = "tf-locks-lesson-8-9"
