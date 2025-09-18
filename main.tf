@@ -28,3 +28,10 @@ module "eks" {
   node_group_max_size   = 3
   node_instance_types   = ["t3.medium"]
 }
+
+module "jenkins" {
+  source         = "./modules/jenkins"
+  namespace      = "jenkins"
+  admin_user     = "admin"
+  admin_password = "CHANGEME"
+}

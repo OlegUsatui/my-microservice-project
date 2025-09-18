@@ -1,0 +1,55 @@
+controller:
+  adminUser: {{ .Values.adminUser | default "admin" }}
+  adminPassword: {{ .Values.adminPassword | default "CHANGEME" }}
+
+  installPlugins:
+    - kubernetes:latest
+    - workflow-aggregator:latest
+    - credentials-binding:latest
+    - git:latest
+    - configuration-as-code:latest
+    - ssh-agent:latest
+
+  JCasC:
+    configScripts:
+      k8s-cloud: |
+        jenkins:
+          clouds:
+            - kubernetes:
+                name: "kubernetes"
+                serverUrl: "https://kubernetes.default.svc"
+                namespace: "{{ $.Values.controller.namespace | default "jenkins" }}"
+                containerCapStr: "10"
+                templates:
+                  - name: "kaniko"
+                    namespace: "{{ $.Values.controller.namespace | default "jenkins" }}"
+                    label: "kaniko"
+                    serviceAccount: "jenkins"
+                    yaml: |-
+                      apiVersion: v1
+                      kind: Pod
+                      spec:
+                        containers:
+                          - name: kaniko
+                            image: gcr.io/kaniko-project/executor:latest
+                            command: ["/busybox/sh","-c","cat"]
+                            tty: true
+                            env:
+                              - name: AWS_REGION
+                                value: "eu-central-1"
+                        restartPolicy: Never
+
+  serviceAccount:
+    create: true
+    name: jenkins
+
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+
+agent:
+  enabled: false
+
+controller:
+  serviceType: ClusterIP
