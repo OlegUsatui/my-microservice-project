@@ -1,0 +1,22 @@
+pipeline {
+agent any
+environment {
+AWS_REGION = 'eu-north-1'
+ECR_URL = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/your-ecr-repo"
+IMAGE_TAG = "${env.BUILD_NUMBER}"
+}
+stages {
+stage('Checkout') { steps { checkout scm } }
+stage('Build') { steps { sh 'docker build -t $ECR_URL:$IMAGE_TAG Django' } }
+stage('Login to ECR') { steps { sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL' } }
+stage('Push') { steps { sh 'docker push $ECR_URL:$IMAGE_TAG' } }
+stage('Deploy via ArgoCD (helm values override)') {
+steps {
+sh '''
+# assumes argo app tracks the chart and uses .Values.image.tag
+kubectl -n argocd rollout status deploy/argocd-server || true
+'''
+}
+}
+}
+}
