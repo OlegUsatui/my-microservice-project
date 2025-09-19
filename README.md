@@ -1,7 +1,5 @@
 # Final Project – AWS + Terraform + EKS/RDS/ECR + Jenkins + Argo CD + Prometheus/Grafana
 
-> Personalized for **eu-north-1** with real names and commands. Replace only `YOUR_AWS_ACCOUNT_ID` where noted.
-
 ---
 
 ## 0) Prerequisites
@@ -13,7 +11,7 @@
 
     * **S3 state bucket**: `oleh-usatyi-tfstate-eun1-20250919`
     * **DynamoDB table**: `tf-locks-final-devops`
-    * **ECR repo**: `final-devops-django` (you can keep `your-ecr-repo` if you prefer)
+    * **ECR repo**: `final-devops-django` 
 
 **Cost warning:** EKS, RDS, NAT GW cost money. Destroy when done.
 
@@ -65,7 +63,7 @@ ecr_name        = "final-devops-django"
 
 # Database
 db_username     = "app"
-db_password     = "ChangeMeStrong123!"  # for demo only – prefer Secrets Manager/SSM in real envs
+db_password     = "MyStrongPass123!" 
 ```
 
 ---
@@ -121,17 +119,13 @@ aws eks update-kubeconfig --region eu-north-1 --name $(terraform output -raw clu
 ```bash
 # Login
 aws ecr get-login-password --region eu-north-1 | \
-  docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com
+  docker login --username AWS --password-stdin 598357935226.dkr.ecr.eu-north-1.amazonaws.com
 
 # Build & tag
-export ECR=YOUR_AWS_ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/final-devops-django
+export ECR=598357935226.dkr.ecr.eu-north-1.amazonaws.com/final-devops-django
 (cd Django && docker build -t $ECR:latest .)
 
 docker push $ECR:latest
-```
-
-Update `charts/django-app/values.yaml` image repo to `$ECR` if needed.
-
 ---
 
 ## 6) Install Monitoring (Prometheus + Grafana)
@@ -181,7 +175,7 @@ Fill `modules/argo_cd/charts/values.yaml` like:
 ```yaml
 applications:
   - name: django-app
-    repoURL: https://github.com/YOUR_GH_USER/YOUR_REPO.git
+    repoURL: https://github.com/OlegUsatyi/my-microservice-project.git
     path: charts/django-app
     targetRevision: main
     namespace: default
@@ -211,7 +205,6 @@ helm upgrade --install apps ./modules/argo_cd/charts -n argocd
 
 ```bash
 terraform destroy
-# If S3 bucket not empty: empty versions/delete markers or temporarily set force_destroy=true in s3-backend module
 ```
 
 ---
